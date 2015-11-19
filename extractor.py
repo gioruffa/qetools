@@ -2,11 +2,12 @@
 
 import argparse
 import sys
-from pprint import pprint
 import csv
 import datetime
-
-from pylab import *
+import os
+import glob
+import logging
+from pprint import pprint
 
 class IterState :
 	BODY = "BODY"
@@ -84,11 +85,37 @@ class BenchLine :
 
 
 parser = argparse.ArgumentParser(description="Parse espresso output file and generate a csv")
-parser.add_argument("outfile", help="espresso output file")
+parser.add_argument("infiles", help="espresso output file", nargs="+")
 parser.add_argument("--csvout-name", help="output csv file name")
+parser.add_argument("--infile-suffix", help="accept only input files with this suffix, default is \".out\"", default=".out" , required=False)
+parser.add_argument("--outfile-suffix", help="suffix for generated outfile, default is \".csv\"" , default=".csv" , required = False)
+parser.add_argument("--log-level", help="logLevel" , choices=['DEBUG','INFO','CRITICAL'] ,default='DEBUG' , required = False)
 args = parser.parse_args()
 
-ofile = args.outfile + ".csv"
+
+loggingConvert={'DEBUG':logging.DEBUG, 'INFO':logging.INFO, 'CRITICAL':logging.CRITICAL}
+logging.basicConfig(level=loggingConvert[args.log_level])
+
+logging.debug("arguments: %s",str(vars(args)))
+
+#general args processing
+infileSet=set()
+
+for infile in args.infiles :
+	if os.path.isfile(infile) and infile[-len(args.infile_suffix):] == args.infile_suffix :
+		infileSet.add(infile)
+		
+	if os.path.isdir(infile) : 
+		dircontent = glob.glob(infile + "/*" + args.infile_suffix )
+		dircontent = [ x  for x in dircontent if os.path.isfile(x)]
+		infileSet = infileSet.union(set(dircontent))
+		
+logging.debug("Input files: %s", infileSet)
+
+sys.exit(1)
+
+
+ofile = args.infiles + ".csv"
 
 if args.csvout_name :
 	ofile = args.csvout_name
@@ -102,7 +129,7 @@ stop=''
 
 #start parsing
 #extract generic informations and extract benchmarks lines
-with open(args.outfile, 'r') as inputFile:
+with open(args.infiles, 'r') as inputFile:
 	for line in inputFile:
 		if "init_run" in line and not init_runFinded :
 			init_runFinded=True
