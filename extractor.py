@@ -31,7 +31,7 @@ def fromTimeToMsec(timeStr):
 	if 's' in timeStr:
 		mseconds = int(float(timeStr.split('s')[0]) * 1000)
 		toRet += mseconds
-	print toRet
+	#print toRet
 	return toRet
 	
 	
@@ -86,17 +86,21 @@ class BenchLine :
 
 parser = argparse.ArgumentParser(description="Parse espresso output file and generate a csv")
 parser.add_argument("infiles", help="espresso output file", nargs="+")
-parser.add_argument("--csvout-name", help="output csv file name")
 parser.add_argument("--infile-suffix", help="accept only input files with this suffix, default is \".out\"", default=".out" , required=False)
 parser.add_argument("--outfile-suffix", help="suffix for generated outfile, default is \".csv\"" , default=".csv" , required = False)
-parser.add_argument("--log-level", help="logLevel" , choices=['DEBUG','INFO','CRITICAL'] ,default='DEBUG' , required = False)
+parser.add_argument("-O","--outfile-dir", help="outfile directory. Default is '.'" , default="." , required = False)
+parser.add_argument("--log-level", help="logLevel" , choices=['DEBUG','INFO','CRITICAL'] ,default='INFO' , required = False)
 args = parser.parse_args()
 
 
 loggingConvert={'DEBUG':logging.DEBUG, 'INFO':logging.INFO, 'CRITICAL':logging.CRITICAL}
 logging.basicConfig(level=loggingConvert[args.log_level])
 
-logging.debug("arguments: %s",str(vars(args)))
+logging.debug("Arguments: %s",str(vars(args)))
+
+if not os.path.isdir(args.outfile_dir) :
+	logging.critical("No output file directory")
+	sys.exit(1)
 
 #general args processing
 infileSet=set()
@@ -104,107 +108,108 @@ infileSet=set()
 for infile in args.infiles :
 	if os.path.isfile(infile) and infile[-len(args.infile_suffix):] == args.infile_suffix :
 		infileSet.add(infile)
+		continue
 		
 	if os.path.isdir(infile) : 
 		dircontent = glob.glob(infile + "/*" + args.infile_suffix )
 		dircontent = [ x  for x in dircontent if os.path.isfile(x)]
 		infileSet = infileSet.union(set(dircontent))
+		continue
+	logging.debug("Skypping invalid file %s",infile)
 		
 logging.debug("Input files: %s", infileSet)
 
-sys.exit(1)
+for infile in infileSet:
+	logging.info("Processing file %s", infile)
+	
+	ofile = args.outfile_dir + '/' + os.path.split(os.path.splitext(infile)[0])[1]+args.outfile_suffix
 
+	init_runFinded=False;
+	benchLines = []
 
-ofile = args.infiles + ".csv"
+	version = ''
+	start=''
+	stop=''
 
-if args.csvout_name :
-	ofile = args.csvout_name
+	#start parsing
+	#extract generic informations and extract benchmarks lines
+	with open(infile, 'r') as inputFile:
+		for line in inputFile:
+			if "init_run" in line and not init_runFinded :
+				init_runFinded=True
+			if init_runFinded :
+				benchLines.append(line)
+			if 'PWSCF' in line :
+				init_runFinded = False
+			if 'Program PWSCF' in line :
+				#save version and start
+				line = ' '.join(line.split())
+				version = line.split(' ')[2]
+				start = ' '.join(line.split(' ')[-3:])
+			if 'This run was terminated on' in line :
+				#save version and start
+				line = ' '.join(line.split())
+				stop = ' '.join(line.split(' ')[-2:])
 
-init_runFinded=False;
-benchLines = []
+				
 
-version = ''
-start=''
-stop=''
+	if len(benchLines) == 0 :
+		logging.critical("ERROR: invalid input file: %s",infile)
+		sys.exit(1)
 
-#start parsing
-#extract generic informations and extract benchmarks lines
-with open(args.infiles, 'r') as inputFile:
-	for line in inputFile:
-		if "init_run" in line and not init_runFinded :
-			init_runFinded=True
-		if init_runFinded :
-			benchLines.append(line)
+	#clean up the lines
+	benchLines = [ x.replace('\n','')  for x in benchLines  ]			
+	benchLines = [ x.replace(')',' ')  for x in benchLines  ]			
+	benchLines = [ x.replace('(',' ')  for x in benchLines  ]
+	benchLines = [ x for x in benchLines if len(x.replace(' ','')) != 0 ]
+	benchLines = [ ' '.join(x.split()) for x in benchLines ] #remove multiple spaces
+
+	#iterate
+	iterState = IterState.BODY
+	lastParent = ''
+	finalLines = []
+	for line in benchLines :
+		#set the state of the iteration
+		if 'Called by' in line :
+			lastParent = line.split(' ')[2][:-1]
+			continue
+		if 'General routines' in line :
+			iterState = IterState.GENERAL_ROUTINES
+			continue
+		if 'Parallel routines' in line :
+			iterState = IterState.PARALLEL_ROUTINES
+			continue
+		if 'Hubbard U routines' in line :
+			iterState = IterState.HUBBARD_U
+			continue
 		if 'PWSCF' in line :
-			init_runFinded = False
-		if 'Program PWSCF' in line :
-			#save version and start
-			line = ' '.join(line.split())
-			version = line.split(' ')[2]
-			start = ' '.join(line.split(' ')[-3:])
-		if 'This run was terminated on' in line :
-			#save version and start
-			line = ' '.join(line.split())
-			stop = ' '.join(line.split(' ')[-2:])
-
-			
-
-if len(benchLines) == 0 :
-	print "ERROR: invalid input file"
-	sys.exit(1)
-
-#clean up the lines
-benchLines = [ x.replace('\n','')  for x in benchLines  ]			
-benchLines = [ x.replace(')',' ')  for x in benchLines  ]			
-benchLines = [ x.replace('(',' ')  for x in benchLines  ]
-benchLines = [ x for x in benchLines if len(x.replace(' ','')) != 0 ]
-benchLines = [ ' '.join(x.split()) for x in benchLines ] #remove multiple spaces
-
-#iterate
-iterState = IterState.BODY
-lastParent = ''
-finalLines = []
-for line in benchLines :
-	#set the state of the iteration
-	if 'Called by' in line :
-		lastParent = line.split(' ')[2][:-1]
-		continue
-	if 'General routines' in line :
-		iterState = IterState.GENERAL_ROUTINES
-		continue
-	if 'Parallel routines' in line :
-		iterState = IterState.PARALLEL_ROUTINES
-		continue
-	if 'Hubbard U routines' in line :
-		iterState = IterState.HUBBARD_U
-		continue
-	if 'PWSCF' in line :
-		iterState = IterState.END
-	
-	thisParent = None if iterState != IterState.BODY else lastParent
-	print "line is: ", line
-	benchLine = BenchLine(line,section=iterState,parent=thisParent)
-	finalLines.append(benchLine)
-	
-	if iterState == IterState.END :
-		break
-	
-#map(pprint,map(vars,finalLines))
+			iterState = IterState.END
 		
-print "version: ",version
-print "start: ",start
-print "stop: ",stop
+		thisParent = None if iterState != IterState.BODY else lastParent
+		logging.debug("line is: %s", line)
+		benchLine = BenchLine(line,section=iterState,parent=thisParent)
+		finalLines.append(benchLine)
+		
+		if iterState == IterState.END :
+			break
+		
+	#map(pprint,map(vars,finalLines))
+			
+	logging.debug( "version: %s",version)
+	logging.debug( "start: %s",start)
+	logging.debug( "stop: %s",stop)
 
-#save on ofile
-with open(ofile,'w') as toWrite :
-	#write the header
-	toWrite.write('#version %s\n' % version)
-	toWrite.write('#start %s\n' % start)
-	toWrite.write('#stop %s\n' % stop)
-	toWrite.write('#')
-	f_csv = csv.writer(toWrite)
-	f_csv.writerow(BenchLine.headers())
-	for line in finalLines :
-		f_csv.writerow(line.toRow())
-	
+	#save on ofile
+	logging.info("writing result to: %s",ofile)
+	with open(ofile,'w') as toWrite :
+		#write the header
+		toWrite.write('#version %s\n' % version)
+		toWrite.write('#start %s\n' % start)
+		toWrite.write('#stop %s\n' % stop)
+		toWrite.write('#')
+		f_csv = csv.writer(toWrite)
+		f_csv.writerow(BenchLine.headers())
+		for line in finalLines :
+			f_csv.writerow(line.toRow())
+		
 
