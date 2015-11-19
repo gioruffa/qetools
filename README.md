@@ -1,2 +1,2 @@
 # qetools
-tools for profiling of Quantum Espresso package
+tools to profile  Quantum Espresso PW package
