@@ -206,7 +206,6 @@ for infile in infileSet:
 		toWrite.write('#version %s\n' % version)
 		toWrite.write('#start %s\n' % start)
 		toWrite.write('#stop %s\n' % stop)
-		toWrite.write('#')
 		f_csv = csv.writer(toWrite)
 		f_csv.writerow(BenchLine.headers())
 		for line in finalLines :
