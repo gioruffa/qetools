@@ -7,7 +7,9 @@ import datetime
 import os
 import glob
 import logging
+import json
 from pprint import pprint
+import StringIO
 
 class IterState :
 	BODY = "BODY"
@@ -130,11 +132,25 @@ for infile in infileSet:
 	version = ''
 	start=''
 	stop=''
+	totCores=0
+	MPIProcs=0
+	threadsPerMPI=0.
+	spaceDivisionLine=""
 
 	#start parsing
 	#extract generic informations and extract benchmarks lines
 	with open(infile, 'r') as inputFile:
 		for line in inputFile:
+			line = " ".join(line.split()) #remove spaces
+			if 'Parallel version (MPI & OpenMP)' in line :
+				totCores = int(line.split()[-3])
+			if 'Number of MPI processes:' in line :
+				MPIProcs = int(line.split()[-1])
+			if 'Threads/MPI process:' in line:
+				#this should be tested
+				threadsPerMPI = float(line.split()[-1])
+			if 'R & G space division:' in line :
+				spaceDivisionLine = line
 			if "init_run" in line and not init_runFinded :
 				init_runFinded=True
 			if init_runFinded :
@@ -143,12 +159,10 @@ for infile in infileSet:
 				init_runFinded = False
 			if 'Program PWSCF' in line :
 				#save version and start
-				line = ' '.join(line.split())
 				version = line.split(' ')[2]
 				start = ' '.join(line.split(' ')[-3:])
 			if 'This run was terminated on' in line :
 				#save version and start
-				line = ' '.join(line.split())
 				stop = ' '.join(line.split(' ')[-2:])
 
 				
@@ -199,16 +213,20 @@ for infile in infileSet:
 	logging.debug( "start: %s",start)
 	logging.debug( "stop: %s",stop)
 
+	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI}
+	headerStr=json.dumps({'header':header}, indent=4)
+	logging.debug( "HEADER STRING")
+	logging.debug( headerStr)
+
+	
 	#save on ofile
 	logging.info("writing result to: %s",ofile)
 	with open(ofile,'w') as toWrite :
 		#write the header
-		toWrite.write('#version %s\n' % version)
-		toWrite.write('#start %s\n' % start)
-		toWrite.write('#stop %s\n' % stop)
+		toWrite.write(headerStr + '\n')
+		toWrite.write(">>> BENCH BEGIN\n")
 		f_csv = csv.writer(toWrite)
 		f_csv.writerow(BenchLine.headers())
 		for line in finalLines :
 			f_csv.writerow(line.toRow())
 		
-
