@@ -136,6 +136,7 @@ for infile in infileSet:
 	MPIProcs=0
 	threadsPerMPI=0.
 	spaceDivisionLine=""
+	openMPEnabled=True
 
 	#start parsing
 	#extract generic informations and extract benchmarks lines
@@ -144,6 +145,9 @@ for infile in infileSet:
 			line = " ".join(line.split()) #remove spaces
 			if 'Parallel version (MPI & OpenMP)' in line :
 				totCores = int(line.split()[-3])
+			if 'Parallel version (MPI)' in line :
+				totCores = int(line.split()[-2])
+				openMPEnabled=False
 			if 'Number of MPI processes:' in line :
 				MPIProcs = int(line.split()[-1])
 			if 'Threads/MPI process:' in line:
@@ -165,8 +169,9 @@ for infile in infileSet:
 				#save version and start
 				stop = ' '.join(line.split(' ')[-2:])
 
-				
-
+	if not openMPEnabled :
+		MPIProcs = totCores #line is not present in the file
+	
 	if len(benchLines) == 0 :
 		logging.critical("ERROR: invalid input file: %s",infile)
 		sys.exit(1)
@@ -213,7 +218,7 @@ for infile in infileSet:
 	logging.debug( "start: %s",start)
 	logging.debug( "stop: %s",stop)
 
-	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI}
+	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled}
 	headerStr=json.dumps({'header':header}, indent=4)
 	logging.debug( "HEADER STRING")
 	logging.debug( headerStr)
