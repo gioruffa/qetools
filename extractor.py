@@ -137,6 +137,7 @@ for infile in infileSet:
 	threadsPerMPI=0.
 	spaceDivisionLine=""
 	openMPEnabled=True
+	numOfIterations=0
 
 	#start parsing
 	#extract generic informations and extract benchmarks lines
@@ -168,6 +169,8 @@ for infile in infileSet:
 			if 'This run was terminated on' in line :
 				#save version and start
 				stop = ' '.join(line.split(' ')[-2:])
+			if 'iteration #' in line :
+				numOfIterations +=1
 
 	if not openMPEnabled :
 		MPIProcs = totCores #line is not present in the file
@@ -218,7 +221,7 @@ for infile in infileSet:
 	logging.debug( "start: %s",start)
 	logging.debug( "stop: %s",stop)
 
-	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled}
+	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled , 'numOfIterations':numOfIterations}
 	headerStr=json.dumps({'header':header}, indent=4)
 	logging.debug( "HEADER STRING")
 	logging.debug( headerStr)
