@@ -36,7 +36,10 @@ def fromTimeToMsec(timeStr):
 	#print toRet
 	return toRet
 	
-	
+
+def timeFromIterationLine(iterLine):
+	timeStr = iterLine.split(' ')[-2]
+	return float(timeStr)
 
 
 
@@ -138,6 +141,8 @@ for infile in infileSet:
 	spaceDivisionLine=""
 	openMPEnabled=True
 	numOfIterations=0
+	initCpuTime=-1
+	iterations=[]
 
 	#start parsing
 	#extract generic informations and extract benchmarks lines
@@ -169,9 +174,16 @@ for infile in infileSet:
 			if 'This run was terminated on' in line :
 				#save version and start
 				stop = ' '.join(line.split(' ')[-2:])
-			if 'iteration #' in line :
-				numOfIterations +=1
-
+			if 'total cpu time spent up to now is' in line :
+				if initCpuTime == -1 :
+					#this is the init time
+					initCpuTime = timeFromIterationLine(line)
+				else :
+					lastAbsCpuTime = iterations[-1]["endCpuTime"] if len (iterations) > 0 else initCpuTime
+					absCpuTimeNow = timeFromIterationLine(line)
+					iterations.append(dict(endCpuTime=absCpuTimeNow, timePerIter=  absCpuTimeNow - lastAbsCpuTime ))
+	
+	numOfIterations=len(iterations)
 	if not openMPEnabled :
 		MPIProcs = totCores #line is not present in the file
 	
@@ -221,7 +233,7 @@ for infile in infileSet:
 	logging.debug( "start: %s",start)
 	logging.debug( "stop: %s",stop)
 
-	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled , 'numOfIterations':numOfIterations}
+	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled , 'numOfIterations':numOfIterations ,'iterations':iterations , 'initCpuTime':initCpuTime}
 	headerStr=json.dumps({'header':header}, indent=4)
 	logging.debug( "HEADER STRING")
 	logging.debug( headerStr)
