@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[6]:
 
 import pandas as pd
 import numpy as np
@@ -12,6 +12,7 @@ import datetime
 import json
 import itertools
 import glob
+import copy
 
 
 # In[2]:
@@ -165,7 +166,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[3]:
+# In[15]:
 
 """
 Organized collection of espresso runs
@@ -209,7 +210,8 @@ class Experiment :
             
     def plotFunction(self,functions=['PWSCF'],labels=None,metric='cpuTime',
                      ylabel=None,orderBy='totCores',figure=None, axes=None, 
-                     ylog=False,ylogBase=10,returned=False, title=None,speedup=False):
+                     ylog=False,ylogBase=10,returned=False, title=None,speedup=False,
+                     rescaleIterations=False):
         #data = [{'index':index,'value':run.df[run.df.name == functionName][metric].values[0]} for run,index in zip(self.runs,range(len(self.runs))) ]
         fig = plt.figure() if figure == None else figure
         ax = fig.add_subplot(111) if axes == None else axes
@@ -332,9 +334,30 @@ class Experiment :
                     break
         
         return toRet
+    
+    def getRescaleRatios(self):
+        min_iters = min(map(lambda x : len(x.header['iterations']) , self.runs ))
+
+        ratios=[]
+        for run in self.runs :
+            realTime = float(run.df[run.df.name == 'PWSCF']['cpuTime'])
+            lastIterTime = 1000.* run.header['iterations'][min_iters - 1 ]['endCpuTime']
+            ratio = (1. * lastIterTime / realTime)
+            ratios.append(ratio)
+            
+        return ratios
+    
+    def rescale(self):
+        rescaled = copy.deepcopy(self)
+        for run,ratio in zip(rescaled.runs,self.getRescaleRatios()) :
+            run.df['cpuTime'] = run.df['cpuTime']*ratio
+            run.df['wallTime'] = run.df['wallTime']*ratio
+            
+        return rescaled
 
 
-# In[4]:
+
+# In[8]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
