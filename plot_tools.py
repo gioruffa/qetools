@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 import pandas as pd
 import numpy as np
@@ -14,7 +14,7 @@ import itertools
 import glob
 
 
-# In[14]:
+# In[2]:
 
 #create a class
 class EspressoRun :
@@ -165,7 +165,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[8]:
+# In[3]:
 
 """
 Organized collection of espresso runs
@@ -334,7 +334,7 @@ class Experiment :
         return toRet
 
 
-# In[7]:
+# In[4]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
