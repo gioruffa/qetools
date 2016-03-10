@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[6]:
+# In[19]:
 
 import pandas as pd
 import numpy as np
@@ -15,7 +15,7 @@ import glob
 import copy
 
 
-# In[2]:
+# In[4]:
 
 #create a class
 class EspressoRun :
@@ -76,6 +76,11 @@ class EspressoRun :
         ax1.bar(left,height);
         ax2.hist(height,len(height)/4)
         
+    def getMeanIterationTime(self):
+        return np.mean([i['timePerIter'] for i in self.header['iterations']])
+        
+    def getStdIterationTime(self):
+        return np.std(map(lambda x : x['timePerIter'],self.header['iterations']))
         
         
         
@@ -166,7 +171,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[15]:
+# In[18]:
 
 """
 Organized collection of espresso runs
@@ -354,6 +359,20 @@ class Experiment :
             run.df['wallTime'] = run.df['wallTime']*ratio
             
         return rescaled
+    
+    def getIterationDF(self,metric='totCores'):
+        sourceDict={'mean':[],'std':[],'stdPerc':[],'n':[] }
+        index = []
+        for run in self.runs :
+            #tio64.getMeanIterationTime(),tio64.getStdIterationTime(),tio64.getStdIterationTime()/tio64.getMeanIterationTime(),len(tio64.header['iterations'])
+            sourceDict['mean'].append(run.getMeanIterationTime())
+            sourceDict['std'].append(run.getStdIterationTime())
+            sourceDict['stdPerc'].append(run.getStdIterationTime()/run.getMeanIterationTime())
+            sourceDict['n'].append(len(run.header['iterations']))
+            index.append(str(run.header[metric]))
+        
+        
+        return pd.DataFrame(sourceDict,index=index,columns=['mean','std','stdPerc','n'])
 
 
 
