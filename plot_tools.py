@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[19]:
+# In[1]:
 
 import pandas as pd
 import numpy as np
@@ -13,9 +13,10 @@ import json
 import itertools
 import glob
 import copy
+from uncertainties import ufloat
 
 
-# In[4]:
+# In[3]:
 
 #create a class
 class EspressoRun :
@@ -171,7 +172,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[18]:
+# In[56]:
 
 """
 Organized collection of espresso runs
@@ -282,8 +283,9 @@ class Experiment :
         plt.title(metric if title == None else title)
         
         if not speedup :
-            formatter =  ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
-            ax.yaxis.set_major_formatter(formatter) 
+            if metric != 'Calls' : 
+                formatter =  ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
+                ax.yaxis.set_major_formatter(formatter) 
         #shrink axis 20% and put the legend outside
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
@@ -374,9 +376,57 @@ class Experiment :
         
         return pd.DataFrame(sourceDict,index=index,columns=['mean','std','stdPerc','n'])
 
+    def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,axesTitle=None,label=None,
+                          metric = 'totCores'):
+        xticks=list(self.getIterationDF(metric).index)
+        xs = range (1, len(xticks)+1)
+        
+        fig, ax = plt.subplots(nrows=1, ncols=1)
+        fig = fig if figure == None else figure
+        ax = ax if axes == None else axes
+        
+        ys = list(self.getIterationDF(metric)['mean'])
+        ye = list(self.getIterationDF(metric)['std'])
+        
+        if speedup:
+            #for error algebra
+            uncert=np.array([ ufloat(val,sig) for val,sig in zip(ys,ye) ])
+            out = uncert[0]/uncert
+            
+            
+            ys = [x.n for x in out]
+            ye = [abs(x.s) for x in out]
+            ye[0] = uncert[0].s/uncert[0].n
+            
+
+        if ylog :
+            ax.set_yscale('log')
+            
+        ax.set_xlim(left=xs[0]-0.5,right=xs[len(xs)-1]+0.5)
+        plt.xticks(xs,xticks)
+        
+        ax.set_title(None if axesTitle == None else axesTitle)
+        
+        
+        plotlabel = "mean iteration time" if label == None else label
+        
+        ax.set_ylabel("speedup" if speedup else "seconds")
+        ax.set_xlabel(metric)
+        
+        #print plotlabel    
+        ax.errorbar(x=xs,y=ys,yerr=ye,fmt='-o',ecolor='g',label=plotlabel)
+        
+        legendLocation = 'upper right' if not speedup else 'upper left'
+        ax.legend(loc = legendLocation)
+        
+    
+        
+        
+        
+    
 
 
-# In[8]:
+# In[5]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
