@@ -143,6 +143,8 @@ for infile in infileSet:
 	numOfIterations=0
 	initCpuTime=-1
 	iterations=[]
+	diagAlgo=''
+	davidIterations=[]
 
 	#start parsing
 	#extract generic informations and extract benchmarks lines
@@ -182,6 +184,14 @@ for infile in infileSet:
 					lastAbsCpuTime = iterations[-1]["endCpuTime"] if len (iterations) > 0 else initCpuTime
 					absCpuTimeNow = timeFromIterationLine(line)
 					iterations.append(dict(endCpuTime=absCpuTimeNow, timePerIter=  absCpuTimeNow - lastAbsCpuTime ))
+			if 'a serial algorithm will be used' in line:
+				diagAlgo = 'serial'
+			if 'scalapack distributed-memory algorithm' in line :
+				diagAlgo = 'scalapack'
+			
+			if 'avg # of iterations =' in line :
+				davidIterations.append(float(line.split(' ')[-1]))
+				
 	
 	numOfIterations=len(iterations)
 	if not openMPEnabled :
@@ -233,7 +243,7 @@ for infile in infileSet:
 	logging.debug( "start: %s",start)
 	logging.debug( "stop: %s",stop)
 
-	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled , 'numOfIterations':numOfIterations ,'iterations':iterations , 'initCpuTime':initCpuTime}
+	header = {'version': version , 'start':start,'stop':stop,'totCores': totCores, 'MPIProcs':MPIProcs,'threadsPerMPI':threadsPerMPI,'openMP':openMPEnabled , 'numOfIterations':numOfIterations ,'iterations':iterations , 'initCpuTime':initCpuTime,'diagAlgo':diagAlgo,'davidsonIterations':davidIterations}
 	headerStr=json.dumps({'header':header}, indent=4)
 	logging.debug( "HEADER STRING")
 	logging.debug( headerStr)
