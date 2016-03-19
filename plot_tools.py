@@ -172,7 +172,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[56]:
+# In[7]:
 
 """
 Organized collection of espresso runs
@@ -277,7 +277,7 @@ class Experiment :
         plt.xlabel(orderBy)
         plt.xlim(0,xticks[-1]+1)
         if speedup :
-            plt.ylabel('Speedup')    
+            plt.ylabel('Speedup')
         else :
             plt.ylabel(metric)
         plt.title(metric if title == None else title)
@@ -376,7 +376,7 @@ class Experiment :
         
         return pd.DataFrame(sourceDict,index=index,columns=['mean','std','stdPerc','n'])
 
-    def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,axesTitle=None,label=None,
+    def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,zeroErrorOnOne=False,axesTitle=None,label=None,
                           metric = 'totCores'):
         xticks=list(self.getIterationDF(metric).index)
         xs = range (1, len(xticks)+1)
@@ -396,7 +396,9 @@ class Experiment :
             
             ys = [x.n for x in out]
             ye = [abs(x.s) for x in out]
-            ye[0] = uncert[0].s/uncert[0].n
+            if not zeroErrorOnOne :
+                ratio = uncert[0]/ufloat(uncert[0].n,uncert[0].s)
+                ye[0] = ratio.s#uncert[0].s/uncert[0].n
             
 
         if ylog :
