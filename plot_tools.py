@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[3]:
+# In[2]:
 
 #create a class
 class EspressoRun :
@@ -172,7 +172,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[7]:
+# In[8]:
 
 """
 Organized collection of espresso runs
@@ -377,13 +377,13 @@ class Experiment :
         return pd.DataFrame(sourceDict,index=index,columns=['mean','std','stdPerc','n'])
 
     def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,zeroErrorOnOne=False,axesTitle=None,label=None,
-                          metric = 'totCores'):
+                          metric = 'totCores',lineFormat='-o',errorColor='g'):
         xticks=list(self.getIterationDF(metric).index)
         xs = range (1, len(xticks)+1)
         
-        fig, ax = plt.subplots(nrows=1, ncols=1)
-        fig = fig if figure == None else figure
-        ax = ax if axes == None else axes
+        #fig, ax = plt.subplots(nrows=1, ncols=1)
+        fig = plt.figure() if figure == None else figure
+        ax = fig.add_subplot(111) if axes == None else axes
         
         ys = list(self.getIterationDF(metric)['mean'])
         ye = list(self.getIterationDF(metric)['std'])
@@ -416,12 +416,13 @@ class Experiment :
         ax.set_xlabel(metric)
         
         #print plotlabel    
-        ax.errorbar(x=xs,y=ys,yerr=ye,fmt='-o',ecolor='g',label=plotlabel)
+        ax.errorbar(x=xs,y=ys,yerr=ye,fmt=lineFormat,ecolor=errorColor,label=plotlabel)
         
         legendLocation = 'upper right' if not speedup else 'upper left'
         ax.legend(loc = legendLocation)
         
-    
+    def getIterationsNumPerRun(self) :
+        return map(lambda x : (x.header['numOfIterations'],x.header['totCores']) , self.runs)
         
         
         
