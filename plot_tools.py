@@ -172,7 +172,7 @@ class EspressoRun :
             return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
 
 
-# In[8]:
+# In[1]:
 
 """
 Organized collection of espresso runs
@@ -342,12 +342,12 @@ class Experiment :
         
         return toRet
     
-    def getRescaleRatios(self):
+    def getRescaleRatios(self,metric = 'cpuTime'):
         min_iters = min(map(lambda x : len(x.header['iterations']) , self.runs ))
 
         ratios=[]
         for run in self.runs :
-            realTime = float(run.df[run.df.name == 'PWSCF']['cpuTime'])
+            realTime = float(run.df[run.df.name == 'PWSCF'][metric])
             lastIterTime = 1000.* run.header['iterations'][min_iters - 1 ]['endCpuTime']
             ratio = (1. * lastIterTime / realTime)
             ratios.append(ratio)
@@ -356,9 +356,9 @@ class Experiment :
     
     def rescale(self):
         rescaled = copy.deepcopy(self)
-        for run,ratio in zip(rescaled.runs,self.getRescaleRatios()) :
-            run.df['cpuTime'] = run.df['cpuTime']*ratio
-            run.df['wallTime'] = run.df['wallTime']*ratio
+        for run,cpuRatio,wallRatio in zip(rescaled.runs,self.getRescaleRatios('cpuTime'),self.getRescaleRatios('wallTime')) :
+            run.df['cpuTime'] = run.df['cpuTime']*cpuRatio
+            run.df['wallTime'] = run.df['wallTime']*wallRatio
             
         return rescaled
     
