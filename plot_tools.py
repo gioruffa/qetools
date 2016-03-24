@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[2]:
+# In[5]:
 
 #create a class
 class EspressoRun :
@@ -165,14 +165,18 @@ class EspressoRun :
             plt.legend()
         return fig
     
-    def getGlobalStackedPlot(self) :
+    def getGlobalStackedPlot(self,savefile="") :
         #if False if 'Condensed' in self.header.keys() else self.header['Condensed'] :
          #   return self.df[['name','cpuTime','cpuTimeStd','wallTime','wallTimeStd']].set_index('name').plot(kind='bar',figsize=(10,6),yerr=['cpuTimeStd','wallTimeStd'])
         #else:
-            return self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
+            toRet =  self.df[['name','cpuTime','wallTime']].set_index('name').plot(kind='bar',figsize=(10,6))
+            if savefile != "" : 
+                plt.savefig(savefile)
+            return toRet;
+            
 
 
-# In[1]:
+# In[13]:
 
 """
 Organized collection of espresso runs
@@ -217,7 +221,10 @@ class Experiment :
     def plotFunction(self,functions=['PWSCF'],labels=None,metric='cpuTime',
                      ylabel=None,orderBy='totCores',figure=None, axes=None, 
                      ylog=False,ylogBase=10,returned=False, title=None,speedup=False,
-                     rescaleIterations=False):
+                     rescaleIterations=False,
+                     legend=True,
+                     useTimeFormatter=True
+                    ):
         #data = [{'index':index,'value':run.df[run.df.name == functionName][metric].values[0]} for run,index in zip(self.runs,range(len(self.runs))) ]
         fig = plt.figure() if figure == None else figure
         ax = fig.add_subplot(111) if axes == None else axes
@@ -273,6 +280,7 @@ class Experiment :
             xticks = [ i['orderBy'] for i in dataSorted ]
 #             ax.plot([0,xticks[-1]],[0,xticks[-1]])
         
+        #axes.set_xticks
         plt.xticks(xticks,xticklabels)
         plt.xlabel(orderBy)
         plt.xlim(0,xticks[-1]+1)
@@ -283,13 +291,14 @@ class Experiment :
         plt.title(metric if title == None else title)
         
         if not speedup :
-            if metric != 'Calls' : 
+            if metric != 'Calls' and useTimeFormatter : 
                 formatter =  ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
                 ax.yaxis.set_major_formatter(formatter) 
+        if legend :
         #shrink axis 20% and put the legend outside
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            box = ax.get_position()
+            ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+            ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         
         if returned :
             return fig
@@ -423,6 +432,12 @@ class Experiment :
         
     def getIterationsNumPerRun(self) :
         return map(lambda x : (x.header['numOfIterations'],x.header['totCores']) , self.runs)
+    
+    def getValuesForFunction(self,function = 'PWSCF', metric = 'cpuTime'):
+        cpuTimes = map (lambda x : float(x.df[x.df.name == function][metric]),self.runs )
+        ranks = map (lambda x : x.header['totCores'], self.runs)
+        
+        return (ranks,cpuTimes)
         
         
         
