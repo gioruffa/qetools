@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[5]:
+# In[2]:
 
 #create a class
 class EspressoRun :
@@ -176,7 +176,7 @@ class EspressoRun :
             
 
 
-# In[13]:
+# In[1]:
 
 """
 Organized collection of espresso runs
@@ -280,10 +280,13 @@ class Experiment :
             xticks = [ i['orderBy'] for i in dataSorted ]
 #             ax.plot([0,xticks[-1]],[0,xticks[-1]])
         
-        #axes.set_xticks
-        plt.xticks(xticks,xticklabels)
-        plt.xlabel(orderBy)
-        plt.xlim(0,xticks[-1]+1)
+        axes.set_xticks(xticks)
+        axes.set_xticklabels(xticklabels)
+        axes.set_xlabel(orderBy)
+        axes.set_xlim(0,xticks[-1]+1)
+        #plt.xticks(xticks,xticklabels)
+        #plt.xlabel(orderBy)
+        #plt.xlim(0,xticks[-1]+1)
         if speedup :
             plt.ylabel('Speedup')
         else :
@@ -351,8 +354,9 @@ class Experiment :
         
         return toRet
     
-    def getRescaleRatios(self,metric = 'cpuTime'):
+    def getRescaleRatios(self,metric = 'cpuTime',override_min = 0):
         min_iters = min(map(lambda x : len(x.header['iterations']) , self.runs ))
+        min_iters = min_iters if override_min != 0 else override_min;
 
         ratios=[]
         for run in self.runs :
@@ -363,9 +367,10 @@ class Experiment :
             
         return ratios
     
-    def rescale(self):
+    def rescale(self,override_min = 0):
         rescaled = copy.deepcopy(self)
-        for run,cpuRatio,wallRatio in zip(rescaled.runs,self.getRescaleRatios('cpuTime'),self.getRescaleRatios('wallTime')) :
+        for run,cpuRatio,wallRatio in zip(rescaled.runs,self.getRescaleRatios('cpuTime',override_min=override_min),
+                                          self.getRescaleRatios('wallTime',override_min=override_min)) :
             run.df['cpuTime'] = run.df['cpuTime']*cpuRatio
             run.df['wallTime'] = run.df['wallTime']*wallRatio
             
@@ -433,6 +438,9 @@ class Experiment :
     def getIterationsNumPerRun(self) :
         return map(lambda x : (x.header['numOfIterations'],x.header['totCores']) , self.runs)
     
+    def getMinIterations(self) :
+        return min (map ( lambda x : x[0] ,self.getIterationsNumPerRun()))
+    
     def getValuesForFunction(self,function = 'PWSCF', metric = 'cpuTime'):
         cpuTimes = map (lambda x : float(x.df[x.df.name == function][metric]),self.runs )
         ranks = map (lambda x : x.header['totCores'], self.runs)
@@ -444,7 +452,7 @@ class Experiment :
     
 
 
-# In[5]:
+# In[4]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
