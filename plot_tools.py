@@ -176,7 +176,7 @@ class EspressoRun :
             
 
 
-# In[1]:
+# In[3]:
 
 """
 Organized collection of espresso runs
@@ -354,9 +354,8 @@ class Experiment :
         
         return toRet
     
-    def getRescaleRatios(self,metric = 'cpuTime',override_min = 0):
-        min_iters = min(map(lambda x : len(x.header['iterations']) , self.runs ))
-        min_iters = min_iters if override_min != 0 else override_min;
+    def getRescaleRatios(self,metric = 'cpuTime', min_iters = 0 ):
+        min_iters =  min(map(lambda x : len(x.header['iterations']) , self.runs )) if min_iters == 0 else min_iters
 
         ratios=[]
         for run in self.runs :
@@ -367,10 +366,10 @@ class Experiment :
             
         return ratios
     
-    def rescale(self,override_min = 0):
+    def rescale(self,**kwargs):
         rescaled = copy.deepcopy(self)
-        for run,cpuRatio,wallRatio in zip(rescaled.runs,self.getRescaleRatios('cpuTime',override_min=override_min),
-                                          self.getRescaleRatios('wallTime',override_min=override_min)) :
+        for run,cpuRatio,wallRatio in zip(rescaled.runs,self.getRescaleRatios('cpuTime',**kwargs),
+                                          self.getRescaleRatios('wallTime',**kwargs)) :
             run.df['cpuTime'] = run.df['cpuTime']*cpuRatio
             run.df['wallTime'] = run.df['wallTime']*wallRatio
             
