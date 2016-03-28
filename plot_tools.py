@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[3]:
 
 import pandas as pd
 import numpy as np
@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[2]:
+# In[4]:
 
 #create a class
 class EspressoRun :
@@ -179,7 +179,7 @@ class EspressoRun :
             
 
 
-# In[3]:
+# In[9]:
 
 """
 Organized collection of espresso runs
@@ -189,7 +189,7 @@ def timeTicks(x, pos):
     return str(d)
 
 def secondsTicks(x, pos):
-    return '%.0e' % (x/1000)
+    return '%.1e' % (x/1000)
     #return str(x/1000)
 
 class Experiment :
@@ -231,7 +231,8 @@ class Experiment :
                      rescaleIterations=False,
                      legend=True,
                      useTimeFormatter=True,
-                     yformatter='time'
+                     yformatter='time',
+                     **kwargs
                     ):
         #data = [{'index':index,'value':run.df[run.df.name == functionName][metric].values[0]} for run,index in zip(self.runs,range(len(self.runs))) ]
         fig = plt.figure() if figure == None else figure
@@ -277,9 +278,9 @@ class Experiment :
 
 #             print toDelete , ys
             if ylog :
-                ax.semilogy(left,ys,label=functionLabel, marker = marker.next(), basey=ylogBase)
+                ax.semilogy(left,ys,label=functionLabel, marker = marker.next(), basey=ylogBase,**kwargs)
             else :
-                ax.plot(left,ys,label=functionLabel, marker = marker.next())
+                ax.plot(left,ys,label=functionLabel, marker = marker.next(),**kwargs)
         
         xticks = range(1,2*len(dataSorted)+1,2)
         xticklabels = [ i['orderBy'] for i in dataSorted]
@@ -404,8 +405,10 @@ class Experiment :
         
         return pd.DataFrame(sourceDict,index=index,columns=['mean','std','stdPerc','n'])
 
-    def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,zeroErrorOnOne=False,axesTitle=None,label=None,
-                          metric = 'totCores',lineFormat='-o',errorColor='g'):
+    def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,
+                           zeroErrorOnOne=False,axesTitle=None,label=None,
+                          metric = 'totCores',lineFormat='-o',errorColor='g',
+                          legend=True):
         xticks=list(self.getIterationDF(metric).index)
         xs = range (1, len(xticks)+1)
         
@@ -433,7 +436,8 @@ class Experiment :
             ax.set_yscale('log')
             
         ax.set_xlim(left=xs[0]-0.5,right=xs[len(xs)-1]+0.5)
-        plt.xticks(xs,xticks)
+        ax.set_xticks(xs)
+        ax.set_xticklabels(xticks)
         
         ax.set_title(None if axesTitle == None else axesTitle)
         
@@ -447,7 +451,8 @@ class Experiment :
         ax.errorbar(x=xs,y=ys,yerr=ye,fmt=lineFormat,ecolor=errorColor,label=plotlabel)
         
         legendLocation = 'upper right' if not speedup else 'upper left'
-        ax.legend(loc = legendLocation)
+        if legend : 
+            ax.legend(loc = legendLocation)
         
     def getIterationsNumPerRun(self) :
         return map(lambda x : (x.header['numOfIterations'],x.header['totCores']) , self.runs)
@@ -466,7 +471,7 @@ class Experiment :
     
 
 
-# In[4]:
+# In[6]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
