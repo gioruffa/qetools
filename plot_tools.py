@@ -173,6 +173,9 @@ class EspressoRun :
             if savefile != "" : 
                 plt.savefig(savefile)
             return toRet;
+    
+    def barplot(self,dataframe,metrics=['cpuTime'],**kwargs) :
+        return  dataframe[['name']+metrics].set_index('name').plot(kind='bar',**kwargs)
             
 
 
@@ -184,6 +187,10 @@ Organized collection of espresso runs
 def timeTicks(x, pos):                                                                                                                                                                                                                                                         
     d = datetime.timedelta(milliseconds=x)                                                                                                                                                                                                                                          
     return str(d)
+
+def secondsTicks(x, pos):
+    return '%.0e' % (x/1000)
+    #return str(x/1000)
 
 class Experiment :
     def __init__(self) :
@@ -223,7 +230,8 @@ class Experiment :
                      ylog=False,ylogBase=10,returned=False, title=None,speedup=False,
                      rescaleIterations=False,
                      legend=True,
-                     useTimeFormatter=True
+                     useTimeFormatter=True,
+                     yformatter='time'
                     ):
         #data = [{'index':index,'value':run.df[run.df.name == functionName][metric].values[0]} for run,index in zip(self.runs,range(len(self.runs))) ]
         fig = plt.figure() if figure == None else figure
@@ -280,23 +288,27 @@ class Experiment :
             xticks = [ i['orderBy'] for i in dataSorted ]
 #             ax.plot([0,xticks[-1]],[0,xticks[-1]])
         
-        axes.set_xticks(xticks)
-        axes.set_xticklabels(xticklabels)
-        axes.set_xlabel(orderBy)
-        axes.set_xlim(0,xticks[-1]+1)
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+        ax.set_xlabel(orderBy)
+        ax.set_xlim(0,xticks[-1]+1)
         #plt.xticks(xticks,xticklabels)
         #plt.xlabel(orderBy)
         #plt.xlim(0,xticks[-1]+1)
         if speedup :
-            plt.ylabel('Speedup')
+            ax.set_ylabel('Speedup')
         else :
-            plt.ylabel(metric)
-        plt.title(metric if title == None else title)
+            ax.set_ylabel(metric)
+        if title != None :
+            ax.set_title(title)
         
-        if not speedup :
-            if metric != 'Calls' and useTimeFormatter : 
-                formatter =  ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
-                ax.yaxis.set_major_formatter(formatter) 
+        if not speedup and metric != 'calls' and yformatter != 'default':
+            if yformatter == 'time' :
+                formatter =  ticker.FuncFormatter(timeTicks)
+            elif yformatter == 'seconds' :
+                formatter =  ticker.FuncFormatter(secondsTicks)                
+            ax.yaxis.set_major_formatter(formatter) 
+            
         if legend :
         #shrink axis 20% and put the legend outside
             box = ax.get_position()
@@ -360,6 +372,9 @@ class Experiment :
         ratios=[]
         for run in self.runs :
             realTime = float(run.df[run.df.name == 'PWSCF'][metric])
+            #in realta' il tempo delle itarazioni e' in wallTime non in cpu time
+            #quindi con i threads vai in scioltezza
+            #l'hai controllata mille volte, fidati
             lastIterTime = 1000.* run.header['iterations'][min_iters - 1 ]['endCpuTime']
             ratio = (1. * lastIterTime / realTime)
             ratios.append(ratio)
