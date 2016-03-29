@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 import pandas as pd
 import numpy as np
@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[4]:
+# In[2]:
 
 #create a class
 class EspressoRun :
@@ -179,7 +179,7 @@ class EspressoRun :
             
 
 
-# In[9]:
+# In[3]:
 
 """
 Organized collection of espresso runs
@@ -471,7 +471,7 @@ class Experiment :
     
 
 
-# In[6]:
+# In[4]:
 
 def condenseFolder(folder,csvFileName,extraHeaderField=None):
     exp = Experiment()
