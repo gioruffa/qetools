@@ -179,7 +179,7 @@ class EspressoRun :
             
 
 
-# In[3]:
+# In[11]:
 
 """
 Organized collection of espresso runs
@@ -408,7 +408,7 @@ class Experiment :
     def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,
                            zeroErrorOnOne=False,axesTitle=None,label=None,
                           metric = 'totCores',lineFormat='-o',errorColor='g',
-                          legend=True):
+                          legend=True,linearSpeedup = False):
         xticks=list(self.getIterationDF(metric).index)
         xs = range (1, len(xticks)+1)
         
@@ -430,6 +430,10 @@ class Experiment :
             if not zeroErrorOnOne :
                 ratio = uncert[0]/ufloat(uncert[0].n,uncert[0].s)
                 ye[0] = ratio.s#uncert[0].s/uncert[0].n
+            
+            if linearSpeedup : 
+                xs = map (float,list(self.getIterationDF(metric).index))
+                print xs
             
 
         if ylog :
