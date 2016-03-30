@@ -179,7 +179,7 @@ class EspressoRun :
             
 
 
-# In[11]:
+# In[5]:
 
 """
 Organized collection of espresso runs
@@ -408,7 +408,8 @@ class Experiment :
     def plotIterationTrend(self,figure=None,axes=None,ylog=False,speedup=False,
                            zeroErrorOnOne=False,axesTitle=None,label=None,
                           metric = 'totCores',lineFormat='-o',errorColor='g',
-                          legend=True,linearSpeedup = False):
+                          legend=True,linearSpeedup = False,
+                          **kwargs):
         xticks=list(self.getIterationDF(metric).index)
         xs = range (1, len(xticks)+1)
         
@@ -452,7 +453,7 @@ class Experiment :
         ax.set_xlabel(metric)
         
         #print plotlabel    
-        ax.errorbar(x=xs,y=ys,yerr=ye,fmt=lineFormat,ecolor=errorColor,label=plotlabel)
+        ax.errorbar(x=xs,y=ys,yerr=ye,fmt=lineFormat,ecolor=errorColor,label=plotlabel,**kwargs)
         
         legendLocation = 'upper right' if not speedup else 'upper left'
         if legend : 
