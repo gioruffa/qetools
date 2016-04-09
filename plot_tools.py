@@ -16,7 +16,7 @@ import copy
 from uncertainties import ufloat
 
 
-# In[2]:
+# In[14]:
 
 #create a class
 class EspressoRun :
@@ -55,20 +55,23 @@ class EspressoRun :
         self.header=self.header['header']
 
             
-    def plotIterationStats(self,fig = None):
+    def plotIterationStats(self,fig,ax1,ax2):
         """Plot iterations cpuTime and their distribution distribution"""
         fig = plt.figure() if fig == None else fig
-        title = "MPI: %s - OMP: %s" % (self.header["MPIProcs"],self.header["threadsPerMPI"])
+        if self.header["threadsPerMPI"] < 1 :
+            title = "%s cores -" % (self.header["MPIProcs"])
+        else:
+            title = "MPI: %s - OMP: %s -" % (self.header["MPIProcs"],self.header["threadsPerMPI"])
         fig.suptitle=(title)
         
-        ax1 = plt.subplot(2,2,1);
-        ax1.set_title(title + " time per iteration")
+        
+        ax1.set_title(title + " CPU time per iteration")
         ax1.set_xlabel("Iteration number")
         ax1.set_ylabel("cpu time (s)")
         
         
-        ax2 = plt.subplot(2,2,2);
-        ax2.set_title(title + " time per iteration distribution")
+        
+        ax2.set_title(title + " CPU time per iteration (distribution)")
         ax2.set_xlabel("cpu time (s)")
         
         
@@ -179,7 +182,7 @@ class EspressoRun :
             
 
 
-# In[5]:
+# In[16]:
 
 """
 Organized collection of espresso runs
@@ -220,9 +223,15 @@ class Experiment :
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     
-    def plotIterationStats(self):
-        for i in self.runs :
-            i.plotIterationStats(fig=plt.figure(figsize=(15,10)))
+    def plotIterationStats(self,left=0,right=0):
+        theRuns = self.runs[left:right]
+        fig,axes = plt.subplots(len(theRuns),2)
+        right = len(self.runs) if right == 0 else right
+        
+        for run,index in zip (theRuns,range(len(theRuns))) :
+            run.plotIterationStats(fig,axes[index,0],axes[index,1])
+        
+        return fig;
         
             
     def plotFunction(self,functions=['PWSCF'],labels=None,metric='cpuTime',
